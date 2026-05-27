@@ -47,6 +47,9 @@ if exist game.exe move /Y game.exe %OUT%\game.exe >nul
 echo Copying audio files ...
 copy /Y "..\Music Jumpy\*.wav" "%OUT%\" >nul
 
+echo Copying background images ...
+copy /Y "..\Backgrounds\*.bmp" "%OUT%\" >nul
+
 echo.
 echo  ======================================
 echo   BUILD SUCCESSFUL!

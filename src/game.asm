@@ -27,6 +27,8 @@ extern _SelectObject@8
 extern _DeleteDC@4
 extern _DeleteObject@4
 extern _BitBlt@36
+extern _StretchBlt@44
+extern _SetStretchBltMode@8
 extern _FillRect@12
 extern _CreateSolidBrush@4
 extern _SetBkMode@8
@@ -43,6 +45,7 @@ extern _AdjustWindowRect@12
 extern _Polygon@12
 extern _Ellipse@20
 extern _GetStockObject@4
+extern _LoadImageA@24
 extern _CreateFileA@28
 extern _ReadFile@20
 extern _WriteFile@20
@@ -68,6 +71,14 @@ extern _CloseHandle@4
 %define TRANSPARENT      1
 %define TIMER_ID         1
 %define TIMER_MS         16
+
+; Background bitmap constants
+%define IMAGE_BITMAP        0
+%define LR_LOADFROMFILE     0x00000010
+%define LR_CREATEDIBSECTION 0x00002000
+%define HALFTONE            4
+%define BMP_W               612
+%define BMP_H               344
 %define MY_WS  WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE
 
 %define VK_LEFT   0x25
@@ -425,6 +436,9 @@ wavOkName    db "SUCCESS.wav", 0
 sbFileName   db "scoreboard.dat", 0
 sbMagicMem   dd SB_MAGIC
 dllWinmm     db "winmm.dll", 0
+; Background image filenames
+bmp1Name     db "stars1.bmp", 0
+bmp2Name     db "stars2.bmp", 0
 procPlay     db "PlaySoundA", 0
 procMci      db "mciSendStringA", 0
 mciOpenPre   db 'open "', 0
@@ -474,6 +488,13 @@ pfnMci      resd 1
 ; Title font handle
 hFontTitle  resd 1
 hFontOld    resd 1
+; Background bitmap paths and handles
+bmp1Path     resb 260
+bmp2Path     resb 260
+hbmStars1    resd 1   ; in-game background bitmap handle
+hbmStars2    resd 1   ; menu/other-state background bitmap handle
+hdcImg       resd 1   ; reusable compatible DC for blitting bitmaps
+hbmImgOld    resd 1   ; saved bitmap when selecting into hdcImg
 
 ; ============================================================
 section .text
@@ -668,6 +689,7 @@ WndProc:
     mov     [hFontTitle], eax
 
     call    InitAudio
+    call    InitBackgrounds
     call    LoadScoreboard
     xor     eax, eax
     jmp     .wRet
@@ -938,6 +960,13 @@ WndProc:
     call    StopAudio
     push    dword [hFontTitle]
     call    _DeleteObject@4
+    ; Free background bitmap resources
+    push    dword [hbmStars1]
+    call    _DeleteObject@4
+    push    dword [hbmStars2]
+    call    _DeleteObject@4
+    push    dword [hdcImg]
+    call    _DeleteDC@4
     push    dword 0
     call    _PostQuitMessage@4
     xor     eax, eax
@@ -1504,6 +1533,43 @@ DrawPlayerRect:
     ret
 
 ; ============================================================
+;  DrawBgBitmap — stretch a background HBITMAP to fill (0,0)-(SW,SH).
+;  Input: eax = HBITMAP to display (must be non-zero).
+;  Clobbers: eax. All other callee-save regs preserved by Win32 calls.
+; ============================================================
+DrawBgBitmap:
+    ; Select bitmap into hdcImg, save old bitmap
+    push    eax
+    push    dword [hdcImg]
+    call    _SelectObject@8
+    mov     [hbmImgOld], eax
+
+    ; Use HALFTONE mode for smooth stretching
+    push    HALFTONE
+    push    dword [hdcMem]
+    call    _SetStretchBltMode@8
+
+    ; StretchBlt(hdcMem, 0, 0, SW, SH, hdcImg, 0, 0, BMP_W, BMP_H, SRCCOPY)
+    push    SRCCOPY
+    push    BMP_H
+    push    BMP_W
+    push    dword 0
+    push    dword 0
+    push    dword [hdcImg]
+    push    SH
+    push    SW
+    push    dword 0
+    push    dword 0
+    push    dword [hdcMem]
+    call    _StretchBlt@44
+
+    ; Restore old bitmap in hdcImg
+    push    dword [hbmImgOld]
+    push    dword [hdcImg]
+    call    _SelectObject@8
+    ret
+
+; ============================================================
 FillBox:  ; eax=L, ebx=T, ecx=R, edx=B, edi=brush
     sub     esp, 16
     mov     [esp + 0],  eax
@@ -1674,6 +1740,57 @@ StopAudio:
     push    mciCloseCmd
     call    [pfnMci]
 .stop_done:
+    popad
+    ret
+
+; ============================================================
+;  InitBackgrounds — build full BMP paths from exe directory and
+;  load both background bitmaps with LoadImageA.
+;  exeDir must already be populated (call after InitAudio).
+;  Preserves all registers (uses pushad/popad).
+; ============================================================
+InitBackgrounds:
+    pushad
+
+    ; --- Create reusable image DC once ---
+    push    dword 0
+    call    _CreateCompatibleDC@4
+    mov     [hdcImg], eax
+
+    ; --- Build bmp1Path = exeDir + bmp1Name ---
+    lea     esi, [exeDir]
+    lea     edi, [bmp1Path]
+    call    StrCopy
+    lea     esi, [bmp1Name]
+    call    StrCopy
+
+    ; --- Build bmp2Path = exeDir + bmp2Name ---
+    lea     esi, [exeDir]
+    lea     edi, [bmp2Path]
+    call    StrCopy
+    lea     esi, [bmp2Name]
+    call    StrCopy
+
+    ; --- Load stars1.bmp (in-game background) ---
+    push    dword LR_LOADFROMFILE | LR_CREATEDIBSECTION
+    push    dword 0             ; cy (0 = use actual size)
+    push    dword 0             ; cx (0 = use actual size)
+    push    dword IMAGE_BITMAP
+    push    bmp1Path
+    push    dword 0             ; hInstance NULL for LR_LOADFROMFILE
+    call    _LoadImageA@24
+    mov     [hbmStars1], eax
+
+    ; --- Load stars2.bmp (menu/other-state background) ---
+    push    dword LR_LOADFROMFILE | LR_CREATEDIBSECTION
+    push    dword 0
+    push    dword 0
+    push    dword IMAGE_BITMAP
+    push    bmp2Path
+    push    dword 0
+    call    _LoadImageA@24
+    mov     [hbmStars2], eax
+
     popad
     ret
 
@@ -1871,13 +1988,26 @@ Render:
     push    esi
     push    edi
 
-    ; Background (fills entire backbuffer — no white gaps possible)
+    ; Background — bitmap when available, solid C_BG fallback otherwise
+    cmp     dword [gameState], 1
+    jne     .bgMenuImg
+    mov     eax, [hbmStars1]
+    jmp     .bgDoImg
+.bgMenuImg:
+    mov     eax, [hbmStars2]
+.bgDoImg:
+    test    eax, eax
+    jz      .bgSolid
+    call    DrawBgBitmap
+    jmp     .bgDone
+.bgSolid:
     mov     eax, 0
     mov     ebx, 0
     mov     ecx, SW
     mov     edx, SH
     mov     edi, [brBg]
     call    FillBox
+.bgDone:
 
     push    TRANSPARENT
     push    dword [hdcMem]
