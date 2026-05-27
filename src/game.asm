@@ -231,7 +231,7 @@ shpSquare: dd 710,50,  780,50,   780,120,  710,120                    ; 4 verts
 shpPenta:  dd 745,45,  783,73,   768,118,  722,118,  707,73           ; 5 verts
 shpHexa:   dd 710,65,  745,45,   780,65,   780,105,  745,125, 710,105 ; 6 verts
 shpHepta:  dd 745,45,  780,68,   784,108,  759,127,  731,127, 706,108, 710,68  ; 7 verts
-shpOcta:   dd 717,57,  773,57,   793,85,   773,113,  717,113, 697,85, 717,57, 717,57  ; 8 verts (last repeated to force close)
+shpOcta:   dd 729,45,  761,45,   785,69,   785,101,  761,125, 729,125, 705,101, 705,69  ; 8 verts (regular octagon, flat top/bottom)
 shpNona:   dd 745,45,  774,55,   786,82,   778,112,  755,127, 735,127, 712,112, 704,82, 716,55  ; 9 verts
 
 ; Shape vertex pointer + count tables (indexed by shape ID 0..7)
@@ -1420,8 +1420,6 @@ CheckCollect:
     pop     ecx
     jmp     .cc_cEnd
 .cc_wrong:
-    cmp     dword [esi+PB_INV], 0
-    jg      .cc_cNx
     dec     dword [esi+PB_LIVES]
     mov     dword [esi+PB_INV], 60
     mov     eax, wavPathErr

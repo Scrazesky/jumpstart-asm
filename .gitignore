@@ -1,9 +1,12 @@
-# Build outputs (rebuilt with build/build.bat)
+﻿# Build outputs (rebuilt with build/build.bat)
 build/*.obj
 build/game.exe
 build/scoreboard.dat
 
-# AI / editor assistant artifacts
+# Large demo videos (host via link instead; GitHub limit is 100 MB)
+Documentation/Video/*.mp4
+
+# Local editor config
 .cursor/
 .cursorrules
 .cursorignore
