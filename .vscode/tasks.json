@@ -1,0 +1,94 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Assemble (NASM)",
+            "type": "shell",
+            "command": "nasm",
+            "args": [
+                "-f", "win32",
+                "-g",
+                "-F", "cv8",
+                "-o", "${workspaceFolder}\\build\\game.obj",
+                "${workspaceFolder}\\src\\game.asm"
+            ],
+            "group": "build",
+            "problemMatcher": {
+                "owner": "nasm",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^(.+):(\\d+):\\s+(error|warning):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "severity": 3,
+                    "message": 4
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Link (GoLink)",
+            "type": "shell",
+            "command": "GoLink",
+            "args": [
+                "/entry", "_WinMain@16",
+                "/debug", "coff",
+                "${workspaceFolder}\\build\\game.obj",
+                "kernel32.dll",
+                "user32.dll",
+                "gdi32.dll"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}\\build"
+            },
+            "group": "build",
+            "dependsOn": "Assemble (NASM)",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build All",
+            "dependsOn": ["Assemble (NASM)", "Link (GoLink)"],
+            "dependsOrder": "sequence",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Build & Run",
+            "dependsOn": "Build All",
+            "type": "shell",
+            "command": "${workspaceFolder}\\build\\game.exe",
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "del",
+            "args": [
+                "/Q",
+                "${workspaceFolder}\\build\\*.obj",
+                "${workspaceFolder}\\build\\*.exe"
+            ],
+            "group": "none",
+            "problemMatcher": []
+        }
+    ]
+}

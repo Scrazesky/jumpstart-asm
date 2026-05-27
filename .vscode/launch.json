@@ -1,0 +1,52 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Game (GDB)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\game.exe",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Set disassembly flavor to Intel syntax",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Enable pretty printing",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Show registers on stop",
+                    "text": "-gdb-set print asm-demangle on",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build All"
+        },
+        {
+            "name": "Debug Game (x64dbg Attach)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}\\build\\game.exe",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Intel syntax",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": false
+                }
+            ]
+        }
+    ]
+}

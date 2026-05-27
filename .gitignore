@@ -1,0 +1,17 @@
+# Build outputs (rebuilt with build/build.bat)
+build/*.obj
+build/game.exe
+build/scoreboard.dat
+
+# AI / editor assistant artifacts
+.cursor/
+.cursorrules
+.cursorignore
+CLAUDE.md
+AGENTS.md
+.aider*
+.continue/
+.codeium/
+.github/copilot-*
+CONVERSATION_EXPORT.md
+*conversation*export*.md
